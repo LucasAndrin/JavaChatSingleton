@@ -72,8 +72,6 @@ public class Server {
 
                 String message;
                 while ((message = reader.readLine()) != null && !message.equals("exit")) {
-                    System.out.println(clientNickname + ": " + message);
-
                     broadcastMessage(clientNickname + ": " + message, this);
                 }
 

@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.Scanner;
@@ -6,9 +8,7 @@ import java.util.Scanner;
 public class Client {
 
     public static void main(String[] args) throws IOException {
-
         start();
-
     }
 
     public static void start() throws IOException {
@@ -20,17 +20,21 @@ public class Client {
             nickname = input.nextLine();
         } while (nickname == null || nickname.isEmpty());
 
-        String msg;
-
         Socket client = null;
-        PrintStream output;
+        PrintStream output = null;
 
         try {
             client = new Socket("localhost", 7000);
             output = new PrintStream(client.getOutputStream());
 
+            // Enviar o nickname para o servidor
             output.println(nickname);
 
+            // Iniciar a thread para receber mensagens do servidor
+            Thread receiveThread = new Thread(new ClientReceiveRunnable(client));
+            receiveThread.start();
+
+            String msg;
             do {
                 msg = input.nextLine();
                 output.println(msg);
@@ -38,10 +42,33 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            assert client != null;
-            client.close();
+            if (output != null) {
+                output.close();
+            }
+            if (client != null) {
+                client.close();
+            }
             input.close();
         }
     }
 
+    private static class ClientReceiveRunnable implements Runnable {
+        private Socket clientSocket;
+
+        public ClientReceiveRunnable(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
+
+        @Override
+        public void run() {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
